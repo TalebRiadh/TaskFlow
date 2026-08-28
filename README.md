@@ -1,35 +1,32 @@
 # TaskFlow
 
-A team-based project & task management API built with **NestJS** — created as a deep-dive learning project to cover the framework end to end: modules, DI, auth, database relations, real-time updates, background jobs, testing, and production readiness.
+A team-based project & task management API built with **NestJS** — a deep-dive learning project covering the framework end to end: modules, DI, hexagonal architecture, database, migrations, testing, and production readiness.
 
-## ✨ Why this project
+## 📍 Current status
 
-TaskFlow isn't just a CRUD app. It's scoped to intentionally touch every major NestJS building block:
+Implemented:
+- **Users module** in **hexagonal (ports & adapters) architecture** (`domain` / `application` / `infrastructure`)
+- TypeORM integration with PostgreSQL + SQL migrations
+- Validation (class-validator) + env validation (Joi)
+- bcrypt password hashing, UUID ids, conflict detection on duplicate emails
 
-- Modular architecture & dependency injection
-- Guards, interceptors, pipes, middleware, exception filters
-- Authentication (JWT) & role-based authorization
-- Relational data modeling (Users, Teams, Projects, Tasks)
-- WebSockets for live updates
-- Background jobs / queues
-- Unit + E2E testing
-- API documentation & deployment basics
+Planned (see roadmap below): auth (JWT), teams, projects, tasks, WebSockets, queues, Swagger.
 
 ## 🧱 Tech Stack
 
 | Layer | Choice |
 |---|---|
-| Framework | [NestJS](https://nestjs.com/) |
+| Framework | [NestJS](https://nestjs.com/) 11 |
 | Language | TypeScript |
-| Database | PostgreSQL |
-| ORM | TypeORM (or Prisma — see `docs/decisions.md`) |
-| Auth | Passport.js + JWT |
-| Queues | BullMQ + Redis |
-| Realtime | Socket.IO (via `@nestjs/websockets`) |
+| Database | PostgreSQL 16 (Docker) |
+| ORM | TypeORM 1.x |
 | Validation | class-validator / class-transformer |
-| Docs | Swagger / OpenAPI |
+| Env config | @nestjs/config + Joi |
+| Password hashing | bcrypt |
 | Testing | Jest + Supertest |
-| Containerization | Docker & Docker Compose |
+| Containerization | Docker & Docker Compose (infra) |
+
+*Planned:* Passport.js + JWT, BullMQ + Redis, Socket.IO, Swagger/OpenAPI, health checks.
 
 ## 📁 Project Structure
 
@@ -38,55 +35,53 @@ taskflow/
 ├── src/
 │   ├── main.ts
 │   ├── app.module.ts
-│   ├── config/                # env config, validation schema
-│   ├── common/                 # shared decorators, filters, interceptors, pipes
-│   ├── auth/                   # JWT strategy, guards, login/register
-│   ├── users/
-│   ├── teams/
-│   ├── projects/
-│   ├── tasks/
-│   ├── notifications/          # queues + events
-│   └── websockets/             # realtime gateway
-├── test/                       # e2e tests
-├── docker-compose.yml
+│   ├── config/                # env validation schema (Joi)
+│   └── users/
+│       ├── domain/            # entity, repository port (USER_REPOSITORY)
+│       ├── application/       # use cases + DTOs (CreateUser, FindUser)
+│       └── infrastructure/
+│           ├── http/          # UsersController
+│           └── persistence/   # TypeORM entity + adapter
+│               #    ^ (user.orm-entity.ts, typeorm-user.repository.ts)
+├── migrations/                # SQL migrations (TypeORM)
+├── test/                      # e2e tests
+├── data-source.ts             # TypeORM CLI data source
+├── docker-compose.yml         # Postgres + Redis only
 ├── .env.example
 └── README.md
 ```
 
 ## 🗺️ Domain Model
 
+Currently modeled: **User** (`id`, `email`, `name`, `hashedPassword`, `createdAt`).
+
+Planned model:
+
 ```
 User ──< TeamMembership >── Team ──< Project ──< Task >── User (assignee)
 ```
-
-- A **User** can belong to multiple **Teams**
-- A **Team** owns multiple **Projects**
-- A **Project** contains multiple **Tasks**
-- A **Task** is assigned to a **User** and has a status (`todo`, `in_progress`, `done`)
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 - Node.js ≥ 18
 - Docker & Docker Compose
-- pnpm / npm / yarn
+- npm / pnpm / yarn
 
 ### Setup
 
 ```bash
-# 1. Clone and install
-git clone <repo-url>
-cd taskflow
+# 1. Install dependencies
 npm install
 
 # 2. Environment variables
-cp .env.example .env
-# fill in DB, JWT, Redis values
+cp .env.example .env     # Windows: Copy-Item .env.example .env
+# fill in DATABASE_URL (Docker defaults already match .env.example)
 
 # 3. Start infrastructure (Postgres + Redis)
 docker-compose up -d
 
-# 4. Run migrations
+# 4. Create the database schema (migrations)
 npm run migration:run
 
 # 5. Start the app
@@ -94,60 +89,71 @@ npm run start:dev
 ```
 
 App runs at `http://localhost:3000`
-Swagger docs at `http://localhost:3000/api`
+
+## 🔑 Endpoints
+
+| Method | Endpoint | Description | Status |
+|---|---|---|---|
+| GET | `/` | Health check ("Hello World!") | ✅ |
+| POST | `/users` | Create a user (email, name, password) | ✅ |
+| GET | `/users/:id` | Get a user by id | ✅ |
+| POST | `/auth/register` | Register (JWT) | 🚧 planned |
+| POST | `/auth/login` | Login (JWT) | 🚧 planned |
+| GET | `/teams` | List teams | 🚧 planned |
+| WS | `/ws/tasks` | Live task updates | 🚧 planned |
+
+## 📦 Scripts
+
+```bash
+npm run start:dev            # dev server with watch mode
+npm run start:prod           # run the production build (dist/src/main)
+npm run build                # production build
+npm run lint                 # eslint
+npm run format               # prettier
+npm run test                 # unit tests
+npm run test:cov             # coverage report
+npm run test:e2e             # e2e tests (requires Postgres running)
+npm run typeorm              # typeorm CLI wrapper (-d data-source.ts)
+npm run migration:create     # scaffold a new (empty) migration
+npm run migration:generate   # generate a migration from entity changes
+npm run migration:run        # apply pending migrations
+npm run migration:revert     # revert the last migration
+```
 
 ## 🧪 Testing
 
 ```bash
 npm run test         # unit tests
-npm run test:e2e     # end-to-end tests
 npm run test:cov     # coverage report
-```
-
-## 📚 Learning Roadmap
-
-This project is built in phases — each phase maps to a NestJS concept area. See [`docs/roadmap.md`](docs/roadmap.md) for the full breakdown.
-
-| Phase | Focus |
-|---|---|
-| 1 | Modules, controllers, providers, DI, DTOs |
-| 2 | Database layer, entities, relations, migrations |
-| 3 | Auth (JWT), guards, RBAC, rate limiting |
-| 4 | Pipes, interceptors, filters, middleware, dynamic modules |
-| 5 | WebSockets, queues, event-driven patterns |
-| 6 | Unit & E2E testing |
-| 7 | Swagger, health checks, Docker, logging |
-
-## 🔑 Key Endpoints (WIP)
-
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/auth/register` | Create a new user |
-| POST | `/auth/login` | Get JWT access/refresh tokens |
-| GET | `/teams` | List teams for current user |
-| POST | `/teams/:id/projects` | Create a project in a team |
-| GET | `/projects/:id/tasks` | List tasks in a project |
-| PATCH | `/tasks/:id` | Update task status/assignee |
-| WS | `/ws/tasks` | Subscribe to live task updates |
-
-## 📦 Scripts
-
-```bash
-npm run start:dev       # dev server with watch mode
-npm run build            # production build
-npm run lint              # eslint
-npm run format            # prettier
-npm run migration:generate
-npm run migration:run
+npm run test:e2e     # e2e tests (requires Postgres running)
 ```
 
 ## 🐳 Docker
 
+`docker-compose.yml` manages the **infrastructure only** — the API runs locally via npm.
+
+| Service | Image | Port | Credentials (dev) |
+|---|---|---|---|
+| postgres | `postgres:16-alpine` | `5432` | `postgres` / `postgres` / db `taskflow` |
+| redis | `redis:7-alpine` | `6379` | — |
+
 ```bash
-docker-compose up --build
+docker-compose up -d        # start Postgres + Redis
+docker-compose down         # stop containers (keeps volumes)
+docker-compose down -v      # stop and wipe data volumes
 ```
 
-Spins up the API, PostgreSQL, and Redis together.
+## 📚 Learning Roadmap
+
+| Phase | Focus | Status |
+|---|---|---|
+| 1 | Modules, controllers, providers, DI, DTOs | ✅ |
+| 2 | Database layer, entities, relations, migrations | ✅ (Users) |
+| 3 | Auth (JWT), guards, RBAC, rate limiting | 🚧 |
+| 4 | Pipes, interceptors, filters, middleware, dynamic modules | 🚧 |
+| 5 | WebSockets, queues, event-driven patterns | 🚧 |
+| 6 | Unit & E2E testing | 🔶 |
+| 7 | Swagger, health checks, Docker, logging | 🚧 |
 
 ## 📄 License
 
