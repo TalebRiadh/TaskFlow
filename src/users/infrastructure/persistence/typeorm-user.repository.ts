@@ -26,7 +26,7 @@ export class TypeOrmUserRepository implements UserRepositoryPort {
     async save(user: User): Promise<void> {
         await this.repo.save({
             id: user.id,
-            eamil: user.email,
+            email: user.email,
             name: user.name,
             password: user.getHashedPassword(),
             createdAt: user.createdAt

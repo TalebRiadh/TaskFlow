@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { CreateUserDto } from './application/dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDto } from './application/dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -11,7 +11,7 @@ export class UsersService {
         const exists = this.users.some(u => u.email === dto.email)
         if (exists) throw new ConflictException('Email already registered')
 
-        const user = {id: randomUUID, ...dto, createdAt: new Date()}
+        const user = {id: randomUUID(), ...dto, createdAt: new Date()}
         this.users.push(user)
         return user
     }

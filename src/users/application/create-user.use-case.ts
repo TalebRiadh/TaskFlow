@@ -1,4 +1,4 @@
-import { ConflictException, Inject } from "@nestjs/common";
+import { ConflictException, Inject, Injectable } from "@nestjs/common";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../domain/user.repository.port";
 import { CreateUserDto } from "./dto/create-user.dto";
 import * as bcrypt from 'bcrypt';
@@ -6,6 +6,7 @@ import { User } from "../domain/user.entity";
 import { randomUUID } from "crypto";
 
 
+@Injectable()
 export class CreateUserUseCase {
     constructor(
         @Inject(USER_REPOSITORY)
