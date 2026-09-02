@@ -18,5 +18,6 @@ import { FindUserUseCase } from './application/find-user.use-case';
       useClass: TypeOrmUserRepository,
     }
   ],
+  exports: [USER_REPOSITORY]
 })
 export class UsersModule {}

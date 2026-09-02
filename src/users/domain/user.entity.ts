@@ -1,3 +1,11 @@
+import * as bcrypt from 'bcrypt';
+
+
+export enum GlobalRole {
+    ADMIN = 'admin',
+    USER = 'user',
+}
+
 export class User {
     constructor(
         public readonly id: string,
@@ -16,5 +24,9 @@ export class User {
 
     getHashedPassword(): string {
         return this.hashedPassword
+    }
+
+    async validatePassword(plainPassword: string): Promise<boolean> {
+        return bcrypt.compare(plainPassword, this.hashedPassword)
     }
 }
